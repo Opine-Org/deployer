@@ -76,6 +76,7 @@ EOF
     ;;
 
 deploy)  echo  "deploy a new version"
+    # make sure remote address is set
     if [ ! -f $DEPLOYER_DIR/remote_addr.txt ]
     then
         echo "remote address is not set"
@@ -88,13 +89,51 @@ deploy)  echo  "deploy a new version"
         exit 1
     fi
 
+    # create the versions file (if it doesn't exist)
+    touch $DEPLOYER_DIR/versions.txt
+
+    # read last version in the file
+    VERSION=$(tail -1 $DEPLOYER_DIR/versions.txt)
+
+    # check if there is not version yet
+    if [ -z $VERSION ]
+    then
+        VERSION=1
+    else
+        VERSION=$(($VERSION + 1))
+    fi
+    echo $VERSION >> $DEPLOYER_DIR/versions.txt
+
+    # build the backend server
+
+    # build the frontend
+
+    # build opine
+
+    # create a new bundle
+    ARCHIVE=$DEPLOYER_DIR/app-v$VERSION.tar.gz
+    tar --exclude .git --exclude .deployer --exclude node_modules -zcvf $ARCHIVE $PROJECT_DIR
+
+    # make new remote directory for version
+    # copy new application version
+    # extract new application version
+    # make new docker container
+    # stop the current version
+    # start the new version
+    # update the current.txt file
+
+    echo $ARCHIVE
+
+    exit 0
+
+    # connect to remote server to ensure that the app directory exists
     ssh -tt -o StrictHostKeyChecking=no root@$REMOTE_ADDR -i $DEPLOYER_DIR/id_rsa.pem << EOF
 mkdir -p /app
 exit
 EOF
     ;;
-9) echo  "Sending SIGKILL signal"
-   ;;
+
+
 *) echo "Unknown command: $1"
    ;;
 esac
