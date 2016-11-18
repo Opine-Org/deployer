@@ -7,7 +7,7 @@ DEPLOYER_DIR=$PROJECT_DIR/.deployer
 
 if [ $# -lt 1 ]
 then
-    echo "Usage : init-local, id-make, id-public, set-remote-addr, init-remote, init-local, deploy, versions, current"
+    echo "Usage : init-local, id-make, id-public, htpasswd, set-remote-addr, init-remote, init-local, deploy, versions, current"
     exit
 fi
 
@@ -21,7 +21,12 @@ id-make)  echo "create credential"
     ;;
 
 id-public)
-    echo $DEPLOYER_DIR/id_rsa.pub
+    cat $DEPLOYER_DIR/id_rsa.pub
+    ;;
+
+htpasswd) echo "create htpasswd for nginx"
+    echo -n 'admin:' > $PROJECT_DIR/.htpasswd
+    openssl passwd -apr1 -stdin <<< "$2" >> $PROJECT_DIR/.htpasswd
     ;;
 
 init-local)  echo "initialize local application"
@@ -125,17 +130,27 @@ deploy)  echo  "deploy a new version"
         exit 1
     fi
 
+    # compose the php project
+    if $PROJECT_DIR/backend/composer/run.sh ; then
+        echo -e "\nBUILD PHP BACKEND COMPOSE: OK"
+    else
+        echo -e "\nBUILD PHP COMPOSE: FAILED"
+        exit 1
+    fi
+
     # build the php project
-    if  $PROJECT_DIR/backend/builder/run.sh build ; then
+    if $PROJECT_DIR/backend/builder/run.sh build production ; then
         echo -e "\nBUILD PHP BACKEND: OK"
     else
         echo -e "\nBUILD PHP BACKEND: FAILED"
         exit 1
     fi
 
+    exit 0
+
     # create a new bundle
     ARCHIVE=$DEPLOYER_DIR/app-v$VERSION.tar.gz
-    if tar --exclude .git --exclude .deployer --exclude node_modules -zcvf $ARCHIVE $PROJECT_DIR ;  then
+    if tar --exclude .git --exclude .deployer --exclude node_modules -zcf $ARCHIVE $PROJECT_DIR ; then
         echo -e "\nCREATE DEPLOYMENT ARCHIVE: OK"
     else
         echo -e "\nCREATE DEPLOYMENT ARCHIVE: FAILED"
@@ -143,28 +158,39 @@ deploy)  echo  "deploy a new version"
     fi
 
     # make new remote directory for version
+    ssh -o StrictHostKeyChecking=no root@$REMOTE_ADDR -i $DEPLOYER_DIR/id_rsa.pem << EOF
+mkdir -p /media/persistent
+mkdir -p /app
+mkdir -p /app/version
+mkdir -p /app/version/$VERSION
+EOF
+    echo -e "\nCREATE REMOTE DIRECTORY: OK"
 
     # copy new application version
+    scp -o StrictHostKeyChecking=no -i $DEPLOYER_DIR/id_rsa.pem $ARCHIVE root@$REMOTE_ADDR:/app/version/$VERSION/app.tar.gz
+    echo -e "\nCOPY DEPLOYMENT ARCHIVE: OK"
 
     # extract new application version
-
-    # make new docker container
+    ssh -o StrictHostKeyChecking=no root@$REMOTE_ADDR -i $DEPLOYER_DIR/id_rsa.pem << EOF
+cd /app/version/$VERSION && tar xzf ./app.tar.gz
+EOF
+    echo -e "\nREMOTE ARCHIVE EXTRATED: OK"
 
     # stop the current version
+    ssh -o StrictHostKeyChecking=no root@$REMOTE_ADDR -i $DEPLOYER_DIR/id_rsa.pem << EOF
+cd /app/version/$VERSION/app && ./stop.sh
+EOF
+    echo -e "\nSTOP PREVIOUS VERSION: OK"
 
     # start the new version in production mode
+    ssh -o StrictHostKeyChecking=no root@$REMOTE_ADDR -i $DEPLOYER_DIR/id_rsa.pem << EOF
+cd /app/version/$VERSION/app && ./run.sh production
+EOF
+    echo -e "\nSTART NEW VERSION: OK"
 
     # update the current.txt file
+    echo $VERSION > $DEPLOYER_DIR/current.txt
 
-    echo $ARCHIVE
-
-    exit 0
-
-    # connect to remote server to ensure that the app directory exists
-    ssh -tt -o StrictHostKeyChecking=no root@$REMOTE_ADDR -i $DEPLOYER_DIR/id_rsa.pem << EOF
-mkdir -p /app
-exit
-EOF
     ;;
 
 
