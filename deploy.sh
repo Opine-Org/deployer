@@ -41,22 +41,6 @@ set-remote-addr)  echo "set the IP address of remote server"
     echo "REMOTE_ADDR: $2"
     ;;
 
-test) echo "test"
-    if [ ! -f $DEPLOYER_DIR/remote_addr.txt ]
-    then
-        echo "remote address is not set"
-        exit 1
-    fi
-    REMOTE_ADDR=$(<$DEPLOYER_DIR/remote_addr.txt)
-    if [ -z $REMOTE_ADDR ]
-    then
-        echo "remote address is not set"
-        exit 1
-    fi
-    ssh -o StrictHostKeyChecking=no root@$REMOTE_ADDR -i $DEPLOYER_DIR/id_rsa.pem << EOF
-EOF
-    ;;
-
 init-remote)  echo  "initialize remote server"
     if [ ! -f $DEPLOYER_DIR/remote_addr.txt ]
     then
@@ -69,7 +53,7 @@ init-remote)  echo  "initialize remote server"
         echo "remote address is not set"
         exit 1
     fi
-    ssh -tt -o StrictHostKeyChecking=no root@$REMOTE_ADDR -i $DEPLOYER_DIR/id_rsa.pem << EOF
+    ssh -o StrictHostKeyChecking=no root@$REMOTE_ADDR -i $DEPLOYER_DIR/id_rsa.pem << EOF
 apt-get update
 apt-get install -y apt-transport-https ca-certificates
 apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D
@@ -80,7 +64,6 @@ apt-get install -y linux-image-extra-$(uname -r) linux-image-extra-virtual
 apt-get install -y docker-engine
 service docker start
 systemctl enable docker
-exit
 EOF
     ;;
 
@@ -139,14 +122,12 @@ deploy)  echo  "deploy a new version"
     fi
 
     # build the php project
-    if $PROJECT_DIR/backend/builder/run.sh build production ; then
+    if $PROJECT_DIR/backend/builder/run.sh build default ; then
         echo -e "\nBUILD PHP BACKEND: OK"
     else
         echo -e "\nBUILD PHP BACKEND: FAILED"
         exit 1
     fi
-
-    exit 0
 
     # create a new bundle
     ARCHIVE=$DEPLOYER_DIR/app-v$VERSION.tar.gz
