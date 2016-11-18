@@ -7,17 +7,21 @@ DEPLOYER_DIR=$PROJECT_DIR/.deployer
 
 if [ $# -lt 1 ]
 then
-    echo "Usage : init-local, credential, set-remote-addr, init-remote, init-local, deploy, versions, current"
+    echo "Usage : init-local, id-make, id-public, set-remote-addr, init-remote, init-local, deploy, versions, current"
     exit
 fi
 
 case "$1" in
 
-credential)  echo "create credential"
+id-make)  echo "create credential"
     mkdir -p $DEPLOYER_DIR
     ssh-keygen -t rsa -N "" -f $DEPLOYER_DIR/id_rsa
     openssl rsa -in $DEPLOYER_DIR/id_rsa -outform pem > $DEPLOYER_DIR/id_rsa.pem
     chmod 400 $DEPLOYER_DIR/id_rsa.pem
+    ;;
+
+id-public)
+    echo $DEPLOYER_DIR/id_rsa.pub
     ;;
 
 init-local)  echo "initialize local application"
@@ -103,23 +107,53 @@ deploy)  echo  "deploy a new version"
         VERSION=$(($VERSION + 1))
     fi
     echo $VERSION >> $DEPLOYER_DIR/versions.txt
+    echo -e "NEW VERSION: $VERSION"
 
-    # build the backend server
+    # build the node server
+    if $PROJECT_DIR/frontend/builder/run.sh webpack.prod.server.js ; then
+        echo -e "\nBUILD JAVASCTIPT SERVER: OK"
+    else
+        echo -e "\nBUILD JAVASCTIPT SERVER: FAILED"
+        exit 1
+    fi
 
-    # build the frontend
+    # build the javascript client
+    if $PROJECT_DIR/frontend/builder/run.sh webpack.prod.client.js ; then
+        echo -e "\nBUILD JAVASCTIPT CLIENT: OK"
+    else
+        echo -e "\nBUILD JAVASCTIPT CLIENT: FAILED"
+        exit 1
+    fi
 
-    # build opine
+    # build the php project
+    if  $PROJECT_DIR/backend/builder/run.sh build ; then
+        echo -e "\nBUILD PHP BACKEND: OK"
+    else
+        echo -e "\nBUILD PHP BACKEND: FAILED"
+        exit 1
+    fi
 
     # create a new bundle
     ARCHIVE=$DEPLOYER_DIR/app-v$VERSION.tar.gz
-    tar --exclude .git --exclude .deployer --exclude node_modules -zcvf $ARCHIVE $PROJECT_DIR
+    if tar --exclude .git --exclude .deployer --exclude node_modules -zcvf $ARCHIVE $PROJECT_DIR ;  then
+        echo -e "\nCREATE DEPLOYMENT ARCHIVE: OK"
+    else
+        echo -e "\nCREATE DEPLOYMENT ARCHIVE: FAILED"
+        exit 1
+    fi
 
     # make new remote directory for version
+
     # copy new application version
+
     # extract new application version
+
     # make new docker container
+
     # stop the current version
-    # start the new version
+
+    # start the new version in production mode
+
     # update the current.txt file
 
     echo $ARCHIVE
