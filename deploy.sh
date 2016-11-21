@@ -4,6 +4,7 @@
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PROJECT_DIR=$DIR/../app
 DEPLOYER_DIR=$PROJECT_DIR/.deployer
+WORK_DIR=$DEPLOYER_DIR/workspace
 
 if [ $# -lt 1 ]
 then
@@ -68,6 +69,30 @@ EOF
     ;;
 
 deploy)  echo  "deploy a new version"
+
+    # initialize working dir
+    mkdir -p $WORK_DIR
+    rm -rf $WORK_DIR
+    mkdir -p $WORK_DIR
+
+    # create a working bundle
+    WORK_ARCHIVE=$WORK_DIR/app.tar
+    if tar --exclude .git --exclude .deployer --exclude node_modules -cf $WORK_ARCHIVE $PROJECT_DIR ; then
+        echo -e "\nCREATE WORKING ARCHIVE: OK"
+    else
+        echo -e "\nCREATE WORKING ARCHIVE: FAILED"
+        exit 1
+    fi
+
+    # extract a working bundle
+    if tar -xf $WORK_ARCHIVE -C $WORK_DIR; then
+        echo -e "\nEXTRACT WORKING ARCHIVE: OK"
+    else
+        echo -e "\nEXTRACT WORKING ARCHIVE: FAILED"
+        exit 1
+    fi
+    rm $WORK_DIR/app.tar
+
     # make sure remote address is set
     if [ ! -f $DEPLOYER_DIR/remote_addr.txt ]
     then
@@ -98,7 +123,7 @@ deploy)  echo  "deploy a new version"
     echo -e "NEW VERSION: $VERSION"
 
     # build the node server
-    if $PROJECT_DIR/frontend/builder/run.sh webpack.prod.server.js ; then
+    if $WORK_DIR/app/frontend/builder/run.sh webpack.prod.server.js ; then
         echo -e "\nBUILD JAVASCTIPT SERVER: OK"
     else
         echo -e "\nBUILD JAVASCTIPT SERVER: FAILED"
@@ -106,7 +131,7 @@ deploy)  echo  "deploy a new version"
     fi
 
     # build the javascript client
-    if $PROJECT_DIR/frontend/builder/run.sh webpack.prod.client.js ; then
+    if $WORK_DIR/app/frontend/builder/run.sh webpack.prod.client.js ; then
         echo -e "\nBUILD JAVASCTIPT CLIENT: OK"
     else
         echo -e "\nBUILD JAVASCTIPT CLIENT: FAILED"
@@ -114,7 +139,7 @@ deploy)  echo  "deploy a new version"
     fi
 
     # compose the php project
-    if $PROJECT_DIR/backend/composer/run.sh ; then
+    if $WORK_DIR/app/backend/composer/run.sh ; then
         echo -e "\nBUILD PHP BACKEND COMPOSE: OK"
     else
         echo -e "\nBUILD PHP COMPOSE: FAILED"
@@ -122,7 +147,7 @@ deploy)  echo  "deploy a new version"
     fi
 
     # build the php project
-    if $PROJECT_DIR/backend/builder/run.sh build default ; then
+    if $WORK_DIR/app/backend/builder/run.sh build production ; then
         echo -e "\nBUILD PHP BACKEND: OK"
     else
         echo -e "\nBUILD PHP BACKEND: FAILED"
@@ -131,7 +156,7 @@ deploy)  echo  "deploy a new version"
 
     # create a new bundle
     ARCHIVE=$DEPLOYER_DIR/app-v$VERSION.tar.gz
-    if tar --exclude .git --exclude .deployer --exclude node_modules -zcf $ARCHIVE $PROJECT_DIR ; then
+    if tar --exclude node_modules -czf $ARCHIVE $WORK_DIR ; then
         echo -e "\nCREATE DEPLOYMENT ARCHIVE: OK"
     else
         echo -e "\nCREATE DEPLOYMENT ARCHIVE: FAILED"
@@ -140,7 +165,9 @@ deploy)  echo  "deploy a new version"
 
     # make new remote directory for version
     ssh -o StrictHostKeyChecking=no root@$REMOTE_ADDR -i $DEPLOYER_DIR/id_rsa.pem << EOF
-mkdir -p /media/persistent
+mkdir -p /app/persistent
+mkdir -p /app/persistent/log
+mkdir -p /app/persistent/web
 mkdir -p /app
 mkdir -p /app/version
 mkdir -p /app/version/$VERSION
@@ -153,7 +180,7 @@ EOF
 
     # extract new application version
     ssh -o StrictHostKeyChecking=no root@$REMOTE_ADDR -i $DEPLOYER_DIR/id_rsa.pem << EOF
-cd /app/version/$VERSION && tar xzf ./app.tar.gz
+cd /app/version/$VERSION && tar xzf ./app.tar.gz --strip-components=3
 EOF
     echo -e "\nREMOTE ARCHIVE EXTRATED: OK"
 
