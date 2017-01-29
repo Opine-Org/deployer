@@ -2,7 +2,7 @@ Orchestrate
 ===========
 
 ### Overview
-Orchestrate is a small shell script that handles all aspects of building and deploying universal Opine applications. An Opine application is an oppinionated PHP application that renders React on the front and backend.
+Orchestrate is a small shell script that handles all aspects of building and deploying universal Opine applications. An Opine application is an opinionated PHP application that renders React on the front and backend.
 
 ### Installation
 Orchestrate resides in a folder adjacent to the project it manages. The directory tree should look like this:
