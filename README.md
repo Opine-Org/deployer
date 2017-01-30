@@ -16,31 +16,32 @@ You can create this structure by:
 ```sh
 mkdir MyProject
 cd MyProject
-git --git-dir=/dev/null clone git@github.com:ryan-mahoney/universal-react-php-app.git app
+git --git-dir=/dev/null clone --depth=1 git@github.com:ryan-mahoney/universal-react-php-app.git app
 git --git-dir=/dev/null clone --depth=1 git@github.com:ryan-mahoney/orchestrate.git
 ```
+
 ### Commands
 **Building**
 
-*compose-backend [command]:* run php compose.
+*compose-backend [command]:* run php compose for the backend code.
 
-*build-backend [command]:* build cached aspects of Opine PHP project.
+*build-backend [command]:* build cached aspects of the backend code.
 
 *build-frontend:* run webpack in foreground.
 
 **Setup**
 
-*init-local:* setup up orchestrator configuration directory.
+*init-local:* setup up orchestrate configuration directory.
 
 *id-make [env]:* make an identity for accessing remote server.
 
 *id-public [env]:* show public key.
 
-*htpasswd:* set the password used by nginx for securing parts of site.
+*htpasswd:* set the password used by nginx for securing certain HTTP end-points.
 
 *set-remote-addr env ip:* set the remote IP address for an environment.
 
-*init-remote [env]:* setup Docker on a fresh remote cloud server.
+*init-remote [env]:* setup Docker on a new remote cloud server.
 
 **Deployment**
 
@@ -48,4 +49,4 @@ git --git-dir=/dev/null clone --depth=1 git@github.com:ryan-mahoney/orchestrate.
 
 *versions:* show all historical deployments.
 
-*current:* show the current deployment ID number.
+*current:* show the current deployment number.
