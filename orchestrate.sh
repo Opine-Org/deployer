@@ -8,11 +8,19 @@ WORK_DIR=$DEPLOYER_DIR/workspace
 
 if [ $# -lt 1 ]
 then
-    echo -e "Usage...\nSETUP: init-local, id-make [env], id-public [env], htpasswd, set-remote-addr env ip, init-remote [env]\nDEPLOYMENT: deploy [env], versions, current\nBUILDING: compose-backend [command], build-backend [command], build-frontend"
+    echo -e "RUNNING: start, stop\nBUILDING: compose-backend [command], build-backend [command], build-frontend\nSETUP: init-local, id-make [env], id-public [env], htpasswd, set-remote-addr env ip, init-remote [env]\nDEPLOYMENT: deploy [env], versions, current"
     exit
 fi
 
 case "$1" in
+
+start)  echo "start local server container"
+    ./app/run.sh
+    ;;
+
+stop)   echo "stop local server container"
+    ./app/stop.sh
+    ;;
 
 id-make)  echo "create credential"
     # set the environement
@@ -180,6 +188,11 @@ deploy)  echo  "deploy a new version"
         exit 1
     fi
     rm $WORK_DIR/app.tar
+
+    # copy production run and stop scripts
+    cp ./app/production/*.sh $WORK_DIR
+    chmod +x $WORK_DIR/run.sh
+    chmod +x $WORK_DIR/stop.sh
 
     # make sure remote address is set
     if [ ! -f $DEPLOYER_DIR/environments/$ENV/remote_addr.txt ]
