@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 
+if [ -z "$SUDO_USER" ]
+    then
+        echo "orchestrate must be run through sudo"
+        exit
+fi
+
 # determine this files directory
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PROJECT_DIR=$DIR/../app
@@ -8,7 +14,7 @@ WORK_DIR=$DEPLOYER_DIR/workspace
 
 if [ $# -lt 1 ]
 then
-    echo -e "RUNNING: start, stop\nBUILDING: compose-backend [command], build-backend [command], build-frontend\nSETUP: init-local, id-make [env], id-public [env], htpasswd, set-remote-addr env ip, init-remote [env]\nDEPLOYMENT: deploy [env], versions, current"
+    echo -e "RUNNING: start, stop, permissions\nBUILDING: compose-backend [command], build-backend [command], build-frontend\nSETUP: init-local, id-make [env], id-public [env], htpasswd, set-remote-addr env ip, init-remote [env]\nDEPLOYMENT: deploy [env], versions, current"
     exit
 fi
 
@@ -20,6 +26,10 @@ start)  echo "start local server container"
 
 stop)   echo "stop local server container"
     ./app/stop.sh
+    ;;
+
+permissions)   echo "set local file permissions"
+    ./app/permissions.sh
     ;;
 
 id-make)  echo "create credential"
