@@ -9,7 +9,7 @@ fi
 # determine this files directory
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PROJECT_DIR=$DIR/../app
-DEPLOYER_DIR=$PROJECT_DIR/.deployer
+DEPLOYER_DIR=$PROJECT_DIR/.orchestrate
 WORK_DIR=$DEPLOYER_DIR/workspace
 
 if [ $# -lt 1 ]
@@ -183,7 +183,7 @@ deploy)  echo  "deploy a new version"
 
     # create a working bundle
     WORK_ARCHIVE=$WORK_DIR/app.tar
-    if tar --exclude .git --exclude .deployer --exclude node_modules -cf $WORK_ARCHIVE $PROJECT_DIR ; then
+    if tar --exclude .git --exclude .orchestrate --exclude node_modules -cf $WORK_ARCHIVE $PROJECT_DIR ; then
         echo -e "\nCREATE WORKING ARCHIVE: OK"
     else
         echo -e "\nCREATE WORKING ARCHIVE: FAILED"
